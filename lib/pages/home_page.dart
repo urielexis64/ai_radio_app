@@ -18,6 +18,17 @@ class _HomePageState extends State<HomePage> {
   Color _selectedColor;
   bool _isPlaying = false;
 
+  final suggestions = [
+    "Play",
+    "Stop",
+    "Play rock music",
+    "Play 94 FM",
+    "Play next",
+    "Play previous",
+    "Pause",
+    "Play pop music",
+  ];
+
   final AudioPlayer _audioPlayer = AudioPlayer();
 
   @override
@@ -83,8 +94,6 @@ class _HomePageState extends State<HomePage> {
         radios.insert(0, newRadio);
         _playMusic(newRadio.url);
         break;
-
-      default:
     }
   }
 
@@ -105,7 +114,31 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: Drawer(),
+      drawer: Drawer(
+        child: Container(
+          color: _selectedColor ?? AIColors.primaryColor2,
+          child: radios != null
+              ? SafeArea(
+                  child: [
+                  'All Channels'.text.xl.white.semiBold.make().px16(),
+                  20.heightBox,
+                  ListView(
+                          padding: Vx.m0,
+                          shrinkWrap: true,
+                          children: radios
+                              .map((e) => ListTile(
+                                    leading: CircleAvatar(
+                                      backgroundImage: NetworkImage(e.icon),
+                                    ),
+                                    title: '${e.name} FM'.text.white.make(),
+                                    subtitle: e.tagline.text.white.make(),
+                                  ))
+                              .toList())
+                      .expand()
+                ].vStack(crossAlignment: CrossAxisAlignment.start))
+              : const Offstage(),
+        ),
+      ),
       body: Stack(
         children: [
           VxAnimatedBox()
@@ -115,24 +148,52 @@ class _HomePageState extends State<HomePage> {
                 _selectedColor ?? AIColors.primaryColor2
               ], begin: Alignment.topLeft, end: Alignment.bottomRight))
               .make(),
-          AppBar(
-            title: "AI Radio"
-                .text
-                .xl4
-                .bold
-                .white
-                .make()
-                .shimmer(
-                    primaryColor: Vx.purple300, secondaryColor: Colors.white)
-                .p16(),
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            centerTitle: true,
-          ),
+          [
+            AppBar(
+              title: "AI Radio"
+                  .text
+                  .xl4
+                  .bold
+                  .white
+                  .make()
+                  .shimmer(
+                      primaryColor: Vx.purple300, secondaryColor: Colors.white)
+                  .p16(),
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              centerTitle: true,
+            ),
+            20.heightBox,
+            "Start with - Hey Alan 👇".text.italic.semiBold.white.make(),
+            10.heightBox,
+            VxSwiper.builder(
+              itemCount: suggestions.length,
+              height: 50,
+              viewportFraction: .35,
+              autoPlay: true,
+              autoPlayAnimationDuration: 5.seconds,
+              autoPlayInterval: 7.seconds,
+              autoPlayCurve: Curves.ease,
+              enableInfiniteScroll: true,
+              itemBuilder: (context, index) {
+                final s = suggestions[index];
+                return Chip(
+                  label: s.text.make(),
+                  backgroundColor: Vx.randomColor,
+                  elevation: 5,
+                );
+              },
+            )
+          ].vStack(),
+          20.heightBox,
           radios != null
               ? VxSwiper.builder(
                   itemCount: radios.length,
-                  aspectRatio: 1.0,
+                  aspectRatio: context.mdWindowSize == MobileWindowSize.xsmall
+                      ? 1.0
+                      : context.mdWindowSize == MobileWindowSize.medium
+                          ? 2.0
+                          : 3.0,
                   enlargeCenterPage: true,
                   onPageChanged: (index) {
                     final colorHex = radios[index].color;
@@ -141,59 +202,7 @@ class _HomePageState extends State<HomePage> {
                   },
                   itemBuilder: (context, index) {
                     final rad = radios[index];
-                    return VxBox(
-                            child: ZStack(
-                      [
-                        Positioned(
-                          top: 0,
-                          right: 0,
-                          child: VxBox(
-                                  child: rad.category.text.uppercase.white
-                                      .make()
-                                      .px16())
-                              .height(40)
-                              .black
-                              .alignCenter
-                              .withRounded(value: 10)
-                              .make(),
-                        ),
-                        Align(
-                          alignment: Alignment.bottomCenter,
-                          child: VStack(
-                            [
-                              rad.name.text.xl3.white.bold.make(),
-                              5.heightBox,
-                              rad.tagline.text.sm.white.semiBold.make()
-                            ],
-                            crossAlignment: CrossAxisAlignment.center,
-                          ),
-                        ),
-                        Align(
-                            alignment: Alignment.center,
-                            child: [
-                              Icon(
-                                CupertinoIcons.play_circle,
-                                color: Colors.white,
-                              ),
-                              10.heightBox,
-                              "Double tap to play".text.gray300.make()
-                            ].vStack()),
-                      ],
-                    ))
-                        .clip(Clip.antiAlias)
-                        .bgImage(DecorationImage(
-                            image: NetworkImage(
-                              rad.image,
-                            ),
-                            fit: BoxFit.cover,
-                            colorFilter: ColorFilter.mode(
-                                Colors.black.withOpacity(0.3),
-                                BlendMode.darken)))
-                        .withRounded(value: 60)
-                        .make()
-                        .onInkDoubleTap(() {
-                      _playMusic(rad.url);
-                    }).p16();
+                    return radioBox(rad);
                   }).centered()
               : Center(
                   child: CircularProgressIndicator(
@@ -227,5 +236,60 @@ class _HomePageState extends State<HomePage> {
         fit: StackFit.expand,
       ),
     );
+  }
+
+  Widget radioBox(MyRadio rad) {
+    return VxBox(
+            child: ZStack(
+      [
+        Positioned(
+          top: 0,
+          right: 0,
+          child: VxBox(
+                  child: rad.category.text.uppercase.white
+                      .make()
+                      .pOnly(right: 24, left: 12, top: 4))
+              .height(40)
+              .black
+              .alignCenter
+              .withRounded(value: 10)
+              .make(),
+        ),
+        Align(
+          alignment: Alignment.bottomCenter,
+          child: VStack(
+            [
+              rad.name.text.xl3.white.bold.make(),
+              5.heightBox,
+              rad.tagline.text.sm.white.semiBold.make()
+            ],
+            crossAlignment: CrossAxisAlignment.center,
+          ),
+        ),
+        Align(
+            alignment: Alignment.center,
+            child: [
+              Icon(
+                CupertinoIcons.play_circle,
+                color: Colors.white,
+              ),
+              10.heightBox,
+              "Double tap to play".text.gray300.make()
+            ].vStack()),
+      ],
+    ))
+        .clip(Clip.antiAlias)
+        .bgImage(DecorationImage(
+            image: NetworkImage(
+              rad.image,
+            ),
+            fit: BoxFit.cover,
+            colorFilter: ColorFilter.mode(
+                Colors.black.withOpacity(0.3), BlendMode.darken)))
+        .withRounded(value: 60)
+        .make()
+        .onInkDoubleTap(() {
+      _playMusic(rad.url);
+    }).p16();
   }
 }
