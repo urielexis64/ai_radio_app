@@ -1,3 +1,4 @@
+import 'package:alan_voice/alan_voice.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -22,6 +23,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    setupAlan();
     fetchRadios();
 
     _audioPlayer.onPlayerStateChanged.listen((event) {
@@ -34,9 +36,63 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  setupAlan() {
+    AlanVoice.addButton(
+        "92779283c976826d2336af37c8c065922e956eca572e1d8b807a3e2338fdd0dc/stage",
+        buttonAlign: AlanVoice.BUTTON_ALIGN_RIGHT);
+    AlanVoice.callbacks.add((command) => _handleCommand(command.data));
+  }
+
+  _handleCommand(Map<String, dynamic> response) {
+    switch (response["command"]) {
+      case "play":
+        _playMusic(_selectedRadio.url);
+        break;
+      case "play_channel":
+        final id = response['id'];
+        _audioPlayer.pause();
+        MyRadio newRadio = radios.firstWhere((element) => element.id == id);
+        radios.remove(newRadio);
+        radios.insert(0, newRadio);
+        _playMusic(newRadio.url);
+        break;
+      case "stop":
+        _audioPlayer.stop();
+        break;
+      case "next":
+        final index = _selectedRadio.id;
+        MyRadio newRadio;
+        if (index + 1 > radios.length) {
+          newRadio = radios.firstWhere((element) => element.id == 1);
+        } else {
+          newRadio = radios.firstWhere((element) => element.id == index + 1);
+        }
+        radios.remove(newRadio);
+        radios.insert(0, newRadio);
+        _playMusic(newRadio.url);
+        break;
+      case "prev":
+        final index = _selectedRadio.id;
+        MyRadio newRadio;
+        if (index - 1 <= 0) {
+          newRadio = radios.firstWhere((element) => element.id == 1);
+        } else {
+          newRadio = radios.firstWhere((element) => element.id == index - 1);
+        }
+        radios.remove(newRadio);
+        radios.insert(0, newRadio);
+        _playMusic(newRadio.url);
+        break;
+
+      default:
+    }
+  }
+
   fetchRadios() async {
     final radioJson = await rootBundle.loadString('assets/radio.json');
     radios = MyRadioList.fromJson(radioJson).radios;
+    _selectedRadio = radios[0];
+    _selectedColor = Color(int.tryParse(_selectedRadio.color));
     setState(() {});
   }
 
@@ -172,10 +228,4 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
-
-  /* getNetworkImage(String url) {
-    return Container(
-        decoration: BoxDecoration(
-            color: Colors.green, image: CachedNetworkImage(imageUrl: url)));
-  } */
 }
